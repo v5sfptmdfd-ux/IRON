@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>FitForge — Din Treningsapp</title>
+<style>
+:root{
+  --bg:#11141c; --bg-elev:#181c27; --bg-card:#1f2433; --bg-card-hover:#262c3f;
+  --border:#2e3548; --text:#eef1f8; --text-dim:#9aa3b8; --text-faint:#6b7488;
+  --accent:#7c9eff; --accent-2:#9d8cff; --good:#5ee6a0; --warn:#ffcf6b; --bad:#ff8585;
+  --push:#ff6b6b; --pull:#5b9dff; --legs:#52e3a4; --upper:#c98bff; --lower:#ffb74d; --rest:#7d8499;
+  --radius:16px; --radius-sm:10px;
+  --shadow:0 8px 28px rgba(0,0,0,.35);
+  --grad-accent:linear-gradient(135deg,#7c9eff 0%,#9d8cff 100%);
+}
+body.light{
+  --bg:#f4f6fb; --bg-elev:#ffffff; --bg-card:#ffffff; --bg-card-hover:#eef2fb;
+  --border:#dde3f0; --text:#1c2233; --text-dim:#5b6478; --text-faint:#8a93a8;
+  --shadow:0 8px 24px rgba(60,80,140,.12);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg); color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  transition:background .25s ease,color .25s ease;
+  overflow-x:hidden;
+}
+button,input,textarea,select{font-family:inherit; color:inherit;}
+button{cursor:pointer;}
+::-webkit-scrollbar{width:8px; height:8px;}
+::-webkit-scrollbar-thumb{background:var(--border); border-radius:8px;}
+
+/* ---------- App shell ---------- */
+#app{display:flex; flex-direction:column; min-height:100vh;}
+header.topbar{
+  position:sticky; top:0; z-index:30;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 20px; background:rgba(17,20,28,.75); backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+body.light header.topbar{background:rgba(255,255,255,.8);}
+.brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:1.15rem; letter-spacing:.2px;}
+.brand .logo{
+  width:36px; height:36px; border-radius:11px; display:grid; place-items:center;
+  background:var(--grad-accent); font-size:1.2rem; box-shadow:0 4px 16px rgba(124,158,255,.45);
+}
+.streak-pill{
+  display:flex; align-items:center; gap:6px; padding:7px 13px; border-radius:999px;
+  background:var(--bg-card); border:1px solid var(--border); font-weight:700; font-size:.85rem;
+}
+main{flex:1; max-width:880px; width:100%; margin:0 auto; padding:18px 16px 100px;}
+.view{display:none; animation:fadeUp .35s ease;}
+.view.active{display:block;}
+@keyframes fadeUp{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+
+/* ---------- Bottom nav ---------- */
+nav.bottom-nav{
+  position:fixed; bottom:0; left:0; right:0; z-index:40;
+  display:flex; justify-content:space-around;
+  background:rgba(24,28,39,.85); backdrop-filter:blur(16px);
+  border-top:1px solid var(--border); padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+}
+body.light nav.bottom-nav{background:rgba(255,255,255,.88);}
+nav.bottom-nav button{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+  background:none; border:none; color:var(--text-faint); font-size:.68rem; font-weight:600;
+  padding:6px 2px; border-radius:12px; transition:color .2s, background .2s, transform .15s;
+}
+nav.bottom-nav button .ic{font-size:1.32rem; line-height:1;}
+nav.bottom-nav button.active{color:var(--accent); background:rgba(124,158,255,.12);}
+nav.bottom-nav button:active{transform:scale(.92);}
+
+/* ---------- Generic card / section ---------- */
+.card{
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:18px; margin-bottom:14px; box-shadow:var(--shadow);
+  transition:background .2s,border-color .2s, transform .15s;
+}
+.card.hoverable:hover{background:var(--bg-card-hover); transform:translateY(-2px);}
+.section-title{font-size:1.05rem; font-weight:800; margin-bottom:12px; display:flex; align-items:center; gap:8px;}
+.row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+.muted{color:var(--text-dim);}
+.faint{color:var(--text-faint); font-size:.82rem;}
+.grid-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+@media(max-width:480px){.grid-2{grid-template-columns:1fr;}}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:12px 20px; border-radius:12px; border:1px solid var(--border);
+  background:var(--bg-elev); color:var(--text); font-weight:700; font-size:.92rem;
+  transition:transform .15s, box-shadow .2s, background .2s, border-color .2s;
+}
+.btn:hover{transform:translateY(-1px); border-color:var(--accent);}
+.btn:active{transform:translateY(0) scale(.98);}
+.btn-primary{background:var(--grad-accent); border:none; color:#0d1117; box-shadow:0 6px 20px rgba(124,158,255,.4);}
+.btn-primary:hover{box-shadow:0 8px 26px rgba(124,158,255,.55);}
+.btn-ghost{background:transparent;}
+.btn-block{width:100%;}
+.btn-sm{padding:8px 14px; font-size:.8rem; border-radius:10px;}
+.btn-danger{border-color:var(--bad); color:var(--bad); background:transparent;}
+.btn[disabled]{opacity:.45; cursor:not-allowed; transform:none;}
+
+/* ---------- Dashboard ---------- */
+.hero{
+  border-radius:var(--radius); padding:22px; margin-bottom:14px; position:relative; overflow:hidden;
+  background:linear-gradient(135deg, rgba(124,158,255,.18), rgba(157,140,255,.12));
+  border:1px solid var(--border);
+}
+.hero h1{font-size:1.5rem; font-weight:800; margin-bottom:4px;}
+.level-badge{
+  display:inline-flex; align-items:center; gap:8px; font-weight:800; font-size:1.6rem;
+  background:var(--grad-accent); -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.xp-bar-track{height:12px; border-radius:999px; background:var(--bg-elev); overflow:hidden; margin:10px 0 6px; border:1px solid var(--border);}
+.xp-bar-fill{height:100%; border-radius:999px; background:var(--grad-accent); width:0%; transition:width .8s cubic-bezier(.22,1,.36,1); position:relative;}
+.xp-bar-fill::after{content:""; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent); animation:shimmer 2.2s infinite;}
+@keyframes shimmer{0%{transform:translateX(-100%);} 100%{transform:translateX(100%);}}
+.stat-tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px;}
+.tile{background:var(--bg-elev); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; text-align:center;}
+.tile .num{font-size:1.25rem; font-weight:800;}
+.tile .lbl{font-size:.7rem; color:var(--text-dim); margin-top:2px;}
+
+.day-chip{
+  display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:13px;
+  font-weight:800; font-size:.95rem; color:#0d1117;
+}
+.quick-actions{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:6px;}
+@media(max-width:480px){.quick-actions{grid-template-columns:1fr 1fr;}}
+.quick-actions .btn{flex-direction:column; padding:16px 10px; font-size:.78rem; gap:6px;}
+.quick-actions .btn .ic{font-size:1.5rem;}
+
+.badge{display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:999px; font-size:.72rem; font-weight:700; background:var(--bg-elev); border:1px solid var(--border);}
+.badge.gold{background:linear-gradient(135deg,#ffd76b,#ffb74d); color:#3a2900; border:none;}
+
+/* ---------- Training log ---------- */
+.exercise-card{background:var(--bg-elev); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; margin-bottom:10px;}
+.exercise-card h4{font-size:1rem; font-weight:800; margin-bottom:2px;}
+.set-row{display:grid; grid-template-columns:34px 1fr 1fr 1fr 36px; gap:8px; align-items:center; margin-top:8px;}
+.set-row input{
+  width:100%; padding:9px 8px; border-radius:9px; border:1px solid var(--border);
+  background:var(--bg-card); color:var(--text); font-size:.85rem; text-align:center;
+}
+.set-row input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(124,158,255,.18);}
+.set-row .set-num{text-align:center; font-weight:800; color:var(--text-faint); font-size:.8rem;}
+.set-row .rm-set{background:none; border:none; color:var(--bad); font-size:1.1rem;}
+.set-labels{display:grid; grid-template-columns:34px 1fr 1fr 1fr 36px; gap:8px; font-size:.65rem; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; margin-top:10px;}
+.last-result{font-size:.76rem; color:var(--text-dim); margin-top:4px;}
+.exercise-actions{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;}
+.autocomplete-wrap{position:relative;}
+.autocomplete-list{
+  position:absolute; top:100%; left:0; right:0; z-index:50; margin-top:4px;
+  background:var(--bg-card); border:1px solid var(--border); border-radius:10px; overflow:hidden;
+  box-shadow:var(--shadow); max-height:180px; overflow-y:auto; display:none;
+}
+.autocomplete-list.show{display:block;}
+.autocomplete-list div{padding:9px 13px; font-size:.85rem; cursor:pointer;}
+.autocomplete-list div:hover{background:var(--bg-card-hover);}
+.add-exercise-form{display:flex; gap:8px; margin-top:4px;}
+.add-exercise-form .autocomplete-wrap{flex:1;}
+.add-exercise-form input{width:100%; padding:11px 13px; border-radius:11px; border:1px solid var(--border); background:var(--bg-elev);}
+
+/* ---------- Chat / AI Coach ---------- */
+.chat-window{display:flex; flex-direction:column; gap:10px; min-height:300px; max-height:54vh; overflow-y:auto; padding:6px 2px 10px;}
+.msg{max-width:84%; padding:11px 15px; border-radius:16px; font-size:.9rem; line-height:1.45; white-space:pre-wrap; word-wrap:break-word;}
+.msg.user{align-self:flex-end; background:var(--grad-accent); color:#0d1117; border-bottom-right-radius:4px; font-weight:600;}
+.msg.bot{align-self:flex-start; background:var(--bg-elev); border:1px solid var(--border); border-bottom-left-radius:4px;}
+.msg.bot.typing{display:flex; gap:5px; align-items:center;}
+.dot{width:7px; height:7px; border-radius:50%; background:var(--text-faint); animation:bounce 1.2s infinite;}
+.dot:nth-child(2){animation-delay:.15s;} .dot:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,60%,100%{transform:translateY(0); opacity:.4;} 30%{transform:translateY(-5px); opacity:1;}}
+.chat-input-row{display:flex; gap:8px; margin-top:10px;}
+.chat-input-row input{flex:1; padding:13px 16px; border-radius:14px; border:1px solid var(--border); background:var(--bg-elev); font-size:.9rem;}
+.chat-input-row input:focus{outline:none; border-color:var(--accent);}
+.context-chips{display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 4px;}
+.chip{padding:8px 13px; border-radius:999px; font-size:.78rem; font-weight:600; background:var(--bg-elev); border:1px solid var(--border);}
+.chip:hover{border-color:var(--accent); color:var(--accent);}
+
+/* ---------- Stats ---------- */
+.chart-card canvas{width:100%; display:block;}
+.legend{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; font-size:.76rem; color:var(--text-dim);}
+.legend span{display:inline-flex; align-items:center; gap:6px;}
+.dot-sw{width:9px; height:9px; border-radius:3px; display:inline-block;}
+.exercise-rank{display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); font-size:.86rem;}
+.exercise-rank:last-child{border-bottom:none;}
+
+/* ---------- Settings ---------- */
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:.78rem; font-weight:700; color:var(--text-dim); margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em;}
+.field input,.field select,.field textarea{
+  width:100%; padding:12px 14px; border-radius:11px; border:1px solid var(--border);
+  background:var(--bg-elev); font-size:.9rem;
+}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none; border-color:var(--accent);}
+.toggle-row{display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border);}
+.toggle-row:last-child{border-bottom:none;}
+.switch{position:relative; width:46px; height:26px; flex:none;}
+.switch input{opacity:0; width:0; height:0;}
+.slider{position:absolute; inset:0; background:var(--border); border-radius:999px; transition:.25s; cursor:pointer;}
+.slider::before{content:""; position:absolute; width:20px; height:20px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.25s;}
+.switch input:checked + .slider{background:var(--grad-accent);}
+.switch input:checked + .slider::before{transform:translateX(20px);}
+.danger-zone{border:1px solid var(--bad); border-radius:var(--radius); padding:16px; background:rgba(255,133,133,.06);}
+
+/* ---------- Onboarding ---------- */
+#onboarding{
+  position:fixed; inset:0; z-index:100; background:var(--bg);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+.onboard-card{max-width:430px; width:100%; text-align:center;}
+.onboard-card .emoji-big{font-size:3.4rem; margin-bottom:6px;}
+.onboard-dots{display:flex; gap:6px; justify-content:center; margin:18px 0;}
+.onboard-dots span{width:8px; height:8px; border-radius:50%; background:var(--border);}
+.onboard-dots span.on{background:var(--accent); width:22px; border-radius:5px; transition:.25s;}
+.onboard-step{display:none; animation:fadeUp .3s ease;}
+.onboard-step.active{display:block;}
+.goal-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0;}
+.goal-opt{padding:16px 10px; border-radius:13px; border:1px solid var(--border); background:var(--bg-elev); font-weight:700; font-size:.85rem;}
+.goal-opt.sel{border-color:var(--accent); background:rgba(124,158,255,.14); color:var(--accent);}
+
+/* ---------- Toast ---------- */
+#toast-wrap{position:fixed; top:74px; left:50%; transform:translateX(-50%); z-index:200; display:flex; flex-direction:column; gap:8px; align-items:center; width:100%; max-width:460px; padding:0 16px; pointer-events:none;}
+.toast{
+  padding:12px 20px; border-radius:13px; background:var(--bg-card); border:1px solid var(--border);
+  box-shadow:var(--shadow); font-size:.85rem; font-weight:700; display:flex; align-items:center; gap:9px;
+  animation:toastIn .3s ease; max-width:100%; pointer-events:auto;
+}
+.toast.success{border-color:var(--good); color:var(--good);}
+.toast.achievement{border-color:#ffd76b; color:#ffd76b; background:linear-gradient(135deg, rgba(255,215,107,.12), rgba(255,183,77,.08));}
+@keyframes toastIn{from{opacity:0; transform:translateY(-14px);} to{opacity:1; transform:translateY(0);}}
+
+/* ---------- Modal ---------- */
+.modal-backdrop{position:fixed; inset:0; background:rgba(8,10,16,.6); backdrop-filter:blur(3px); z-index:90; display:none; align-items:center; justify-content:center; padding:20px;}
+.modal-backdrop.show{display:flex;}
+.modal{background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:20px; max-width:420px; width:100%; max-height:84vh; overflow-y:auto; box-shadow:var(--shadow);}
+.modal h3{margin-bottom:12px; font-weight:800;}
+.empty-hint{text-align:center; padding:30px 14px; color:var(--text-faint);}
+.empty-hint .ic{font-size:2.4rem; display:block; margin-bottom:10px;}
+
+</style>
+</head>
+<body>
+<div id="toast-wrap"></div>
+
+<!-- ============ ONBOARDING ============ -->
+<div id="onboarding">
+  <div class="onboard-card card">
+    <div class="onboard-dots" id="onboard-dots"></div>
+
+    <div class="onboard-step active" data-step="0">
+      <div class="emoji-big">🔥</div>
+      <h1 style="margin-bottom:8px;">Velkomen til FitForge</h1>
+      <p class="muted">Din personlege treningskompis med 5-dagars split, poeng, nivå og ein AI-coach som følgjer deg på vegen. La oss sette deg opp på under eitt minutt.</p>
+      <button class="btn btn-primary btn-block" style="margin-top:20px" onclick="Onboarding.next()">Kom i gang →</button>
+    </div>
+
+    <div class="onboard-step" data-step="1">
+      <div class="emoji-big">👋</div>
+      <h1 style="margin-bottom:8px;">Kva skal vi kalle deg?</h1>
+      <div class="field" style="text-align:left; margin-top:14px;">
+        <label>Namn / kallenamn</label>
+        <input type="text" id="ob-name" placeholder="F.eks. Kim">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="Onboarding.saveName()">Neste →</button>
+    </div>
+
+    <div class="onboard-step" data-step="2">
+      <div class="emoji-big">🎯</div>
+      <h1 style="margin-bottom:8px;">Kva er målet ditt?</h1>
+      <p class="faint">Vel det som passar best — du kan endre dette seinare.</p>
+      <div class="goal-grid" id="ob-goal-grid">
+        <button class="goal-opt" data-goal="muskel">💪 Bygge muskel</button>
+        <button class="goal-opt" data-goal="styrke">🏋️ Bli sterkare</button>
+        <button class="goal-opt" data-goal="vekt">⚖️ Gå ned i vekt</button>
+        <button class="goal-opt" data-goal="kondis">🏃 Betre kondisjon</button>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="Onboarding.saveGoal()">Neste →</button>
+    </div>
+
+    <div class="onboard-step" data-step="3">
+      <div class="emoji-big">📅</div>
+      <h1 style="margin-bottom:8px;">Treningsplanen din</h1>
+      <p class="muted" style="text-align:left; line-height:1.7; margin-top:10px;">
+        Vi har sett opp eit <strong>5-dagars split</strong> for deg:<br>
+        <span class="day-chip" style="background:var(--push); margin:4px 0;">🔴 Dag 1 — Push</span><br>
+        <span class="day-chip" style="background:var(--pull); margin:4px 0;">🔵 Dag 2 — Pull</span><br>
+        <span class="day-chip" style="background:var(--legs); margin:4px 0;">🟢 Dag 3 — Legs</span><br>
+        <span class="day-chip" style="background:var(--upper); margin:4px 0;">🟣 Dag 4 — Upper Power</span><br>
+        <span class="day-chip" style="background:var(--lower); margin:4px 0;">🟠 Dag 5 — Lower Power</span><br>
+        <span class="day-chip" style="background:var(--rest); margin:4px 0;">⚪ Dag 6-7 — Kvile / aktiv</span>
+      </p>
+      <button class="btn btn-primary btn-block" style="margin-top:16px" onclick="Onboarding.next()">Skjønner! →</button>
+    </div>
+
+    <div class="onboard-step" data-step="4">
+      <div class="emoji-big">🤖</div>
+      <h1 style="margin-bottom:8px;">AI-Coach (valfritt)</h1>
+      <p class="muted">For å chatte med AI-coachen din treng du ein Anthropic API-nøkkel. Du kan leggje denne til no, eller seinare under Innstillingar — appen fungerer heilt fint utan.</p>
+      <div class="field" style="text-align:left; margin-top:14px;">
+        <label>Anthropic API-nøkkel (valfritt)</label>
+        <input type="password" id="ob-apikey" placeholder="sk-ant-...">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="Onboarding.finish()">Fullfør oppsett 🚀</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="Onboarding.finish()">Hopp over</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div id="app" style="display:none;">
+  <header class="topbar">
+    <div class="brand"><span class="logo">🔥</span> FitForge</div>
+    <div class="streak-pill"><span>🔥</span><span id="streak-count">0</span><span class="faint">dagar</span></div>
+  </header>
+
+  <main>
+    <!-- ---------------- DASHBOARD ---------------- -->
+    <section class="view active" id="view-dashboard">
+      <div class="hero">
+        <p class="faint" id="dash-greeting">Hei!</p>
+        <h1 id="dash-username">Velkomen tilbake</h1>
+        <div class="row" style="margin-top:14px; align-items:flex-end;">
+          <div>
+            <span class="faint">NIVÅ</span>
+            <div class="level-badge"><span id="dash-level">1</span> <span style="font-size:1rem; -webkit-text-fill-color:var(--text-dim);" id="dash-level-title">Nybyrjar</span></div>
+          </div>
+          <div style="text-align:right;">
+            <span class="faint" id="dash-xp-label">0 / 100 XP</span>
+          </div>
+        </div>
+        <div class="xp-bar-track"><div class="xp-bar-fill" id="dash-xp-bar"></div></div>
+        <div class="stat-tiles">
+          <div class="tile"><div class="num" id="dash-total-points">0</div><div class="lbl">TOTALPOENG</div></div>
+          <div class="tile"><div class="num" id="dash-streak">0</div><div class="lbl">DAGAR I STREIK 🔥</div></div>
+          <div class="tile"><div class="num" id="dash-sessions">0</div><div class="lbl">ØKTER LOGGA</div></div>
+        </div>
+      </div>
+
+      <div class="card hoverable" id="dash-today-card">
+        <div class="section-title">📅 I dag</div>
+        <div id="dash-today-content"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">⚡ Snarvegar</div>
+        <div class="quick-actions">
+          <button class="btn btn-primary" onclick="Router.go('training')"><span class="ic">🏋️</span>Start trening</button>
+          <button class="btn" onclick="Router.go('coach')"><span class="ic">🤖</span>Snakk med coach</button>
+          <button class="btn" onclick="Router.go('stats')"><span class="ic">📊</span>Vis statistikk</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="margin-bottom:8px;">
+          <div class="section-title" style="margin-bottom:0;">🏅 Nyaste prestasjonar</div>
+          <button class="btn btn-ghost btn-sm" onclick="Router.go('stats')">Sjå alle</button>
+        </div>
+        <div id="dash-achievements"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">🏆 Toppøkter (poeng)</div>
+        <div id="dash-leaderboard"></div>
+      </div>
+    </section>
+
+    <!-- ---------------- TRAINING LOG ---------------- -->
+    <section class="view" id="view-training">
+      <div class="card">
+        <div class="row">
+          <div>
+            <div class="section-title" style="margin-bottom:2px;" id="train-day-title">🏋️ Dagens økt</div>
+            <span class="faint" id="train-day-sub">—</span>
+          </div>
+          <select id="train-day-picker" class="btn btn-sm" style="border:1px solid var(--border);" onchange="Training.changeDay(this.value)"></select>
+        </div>
+      </div>
+
+      <div id="train-rest-notice" style="display:none;" class="card">
+        <div class="empty-hint">
+          <span class="ic">😌</span>
+          <strong>Kviledag</strong>
+          <p class="faint" style="margin-top:6px;">I dag er det restitusjon som gjeld. Du kan framleis logge ei lett aktiv økt om du vil ha poeng.</p>
+          <button class="btn btn-primary" style="margin-top:14px" onclick="Training.startActiveRecovery()">➕ Logg aktiv kvile</button>
+        </div>
+      </div>
+
+      <div id="train-exercise-list"></div>
+
+      <div class="card" id="train-add-card" style="display:none;">
+        <div class="section-title" style="margin-bottom:8px;">➕ Legg til øving</div>
+        <div class="add-exercise-form">
+          <div class="autocomplete-wrap">
+            <input type="text" id="train-new-exercise" placeholder="Øvingsnamn (f.eks. Benkpress)" autocomplete="off"
+              oninput="Training.autocomplete(this.value)" onfocus="Training.autocomplete(this.value)">
+            <div class="autocomplete-list" id="train-autocomplete"></div>
+          </div>
+          <button class="btn btn-primary" onclick="Training.addExercise()">Legg til</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="train-finish-btn" style="padding:16px; font-size:1rem;" onclick="Training.finishSession()">
+        ✅ Fullfør sesjon
+      </button>
+    </section>
+
+    <!-- ---------------- AI COACH ---------------- -->
+    <section class="view" id="view-coach">
+      <div class="card" style="display:flex; flex-direction:column;">
+        <div class="section-title">🤖 AI Coach</div>
+        <div class="context-chips">
+          <button class="chip" onclick="Coach.ask('Kva skal eg gjere i dag?')">📅 Kva skal eg gjere i dag?</button>
+          <button class="chip" onclick="Coach.ask('Korleis går progresjonen min?')">📈 Min progresjon</button>
+          <button class="chip" onclick="Coach.ask('Gi meg tips til betre form')">🧘 Tips for betre form</button>
+          <button class="chip" onclick="Coach.ask('Gi meg eit ernæringstips')">🥗 Ernæringstips</button>
+          <button class="chip" onclick="Coach.ask('Motiver meg!')">🔥 Motiver meg</button>
+        </div>
+        <div class="chat-window" id="chat-window"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="Spør coachen om noko…" onkeydown="if(event.key==='Enter')Coach.send();">
+          <button class="btn btn-primary" onclick="Coach.send()">➤</button>
+        </div>
+        <p class="faint" id="coach-key-hint" style="margin-top:10px; display:none;">
+          🔑 Du har ikkje lagt inn ein API-nøkkel enno. <a href="#" onclick="Router.go('settings'); return false;" style="color:var(--accent);">Legg til i Innstillingar</a> for å chatte med ekte AI — fram til då gjev coachen smarte lokale svar basert på loggen din.
+        </p>
+      </div>
+    </section>
+
+    <!-- ---------------- STATISTICS ---------------- -->
+    <section class="view" id="view-stats">
+      <div class="card chart-card">
+        <div class="section-title">📈 Poeng over tid</div>
+        <canvas id="chart-points" height="160"></canvas>
+        <div class="legend"><span><i class="dot-sw" style="background:var(--accent)"></i> Poeng pr. økt</span></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="section-title">📅 Treningsfrekvens (siste 7 veker)</div>
+        <canvas id="chart-frequency" height="140"></canvas>
+        <div class="legend"><span><i class="dot-sw" style="background:var(--good)"></i> Økter pr. veke</span></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-title">🔥 Mest brukte øvingar</div>
+          <div id="stats-top-exercises"></div>
+        </div>
+        <div class="card">
+          <div class="section-title">📦 Totalt volum</div>
+          <div id="stats-volume"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">🏅 Alle prestasjonar</div>
+        <div id="stats-achievements"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">🏆 Leaderboard — beste økter</div>
+        <div id="stats-leaderboard"></div>
+      </div>
+    </section>
+
+    <!-- ---------------- SETTINGS ---------------- -->
+    <section class="view" id="view-settings">
+      <div class="card">
+        <div class="section-title">👤 Profil</div>
+        <div class="field">
+          <label>Namn</label>
+          <input type="text" id="set-name">
+        </div>
+        <div class="field">
+          <label>Mål</label>
+          <select id="set-goal">
+            <option value="muskel">💪 Bygge muskel</option>
+            <option value="styrke">🏋️ Bli sterkare</option>
+            <option value="vekt">⚖️ Gå ned i vekt</option>
+            <option value="kondis">🏃 Betre kondisjon</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="Settings.saveProfile()">💾 Lagre profil</button>
+      </div>
+
+      <div class="card">
+        <div class="section-title">🎨 Utsjåande</div>
+        <div class="toggle-row">
+          <div><strong>Lyst tema</strong><div class="faint">Byt mellom mørkt (standard) og lyst tema</div></div>
+          <label class="switch"><input type="checkbox" id="set-light-mode" onchange="Settings.toggleTheme(this.checked)"><span class="slider"></span></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">🤖 AI Coach</div>
+        <div class="field">
+          <label>Anthropic API-nøkkel</label>
+          <input type="password" id="set-apikey" placeholder="sk-ant-...">
+        </div>
+        <div class="field">
+          <label>Modell</label>
+          <select id="set-model">
+            <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (best kvalitet)</option>
+            <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku (raskast)</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="Settings.saveApiKey()">💾 Lagre nøkkel</button>
+        <p class="faint" style="margin-top:10px;">Nøkkelen din vert lagra lokalt i nettlesaren (localStorage) og vert berre brukt til å snakke direkte med Anthropic sitt API. Han vert aldri sendt nokon annan stad.</p>
+      </div>
+
+      <div class="card">
+        <div class="section-title">📦 Data</div>
+        <p class="faint" style="margin-bottom:12px;">All treningsdata lagrast lokalt på denne eininga. Eksporter for sikkerheitskopi, eller importer ein tidlegare eksport.</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn" onclick="DataIO.exportData()">⬇️ Eksporter JSON</button>
+          <button class="btn" onclick="document.getElementById('import-file').click()">⬆️ Importer JSON</button>
+          <input type="file" id="import-file" accept="application/json" style="display:none" onchange="DataIO.importData(this.files[0])">
+        </div>
+      </div>
+
+      <div class="card danger-zone">
+        <div class="section-title" style="color:var(--bad);">⚠️ Faresone</div>
+        <p class="faint" style="margin-bottom:12px;">Dette slettar all data permanent og kan ikkje angrast.</p>
+        <button class="btn btn-danger" onclick="Settings.confirmReset()">🗑️ Nullstill all data</button>
+      </div>
+
+      <p class="faint" style="text-align:center; padding:14px;">FitForge v1.0 · 100% lokal lagring · Laga med 💙</p>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-view="dashboard" onclick="Router.go('dashboard')"><span class="ic">🏠</span>Dashboard</button>
+    <button class="nav-btn" data-view="training" onclick="Router.go('training')"><span class="ic">🏋️</span>Trening</button>
+    <button class="nav-btn" data-view="coach" onclick="Router.go('coach')"><span class="ic">🤖</span>Coach</button>
+    <button class="nav-btn" data-view="stats" onclick="Router.go('stats')"><span class="ic">📊</span>Stats</button>
+    <button class="nav-btn" data-view="settings" onclick="Router.go('settings')"><span class="ic">⚙️</span>Innstill.</button>
+  </nav>
+</div>
+
+<!-- ============ MODALS ============ -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+   CONSTANTS
+   ============================================================ */
+const STORAGE_KEY = 'fitforge_v1';
+const NOR_MONTHS = ['januar','februar','mars','april','mai','juni','juli','august','september','oktober','november','desember'];
+
+const SPLIT_DAYS = {
+  1:{name:'Push',        emoji:'🔴', color:'var(--push)',  hex:'#ff6b6b', desc:'Bryst, skuldre & triceps',
+     exercises:['Benkpress','Skråbenk med manualar','Skulderpress','Sidehev','Triceps pushdown','Dips']},
+  2:{name:'Pull',        emoji:'🔵', color:'var(--pull)',  hex:'#5b9dff', desc:'Rygg, bakskuldre & biceps',
+     exercises:['Markløft','Pull-ups','Sittande roing','Face pulls','Hantelcurl','Hammercurl']},
+  3:{name:'Legs',        emoji:'🟢', color:'var(--legs)',  hex:'#52e3a4', desc:'Bein & setemuskulatur',
+     exercises:['Knebøy','Beinpress','Rumensk markløft','Utfall','Leg curl','Tåhev']},
+  4:{name:'Upper Power', emoji:'🟣', color:'var(--upper)', hex:'#c98bff', desc:'Tungt fokus — overkropp',
+     exercises:['Benkpress (tungt)','Tung roing','Militærpress','Vekta pull-up','Nedtrekk smalt grep']},
+  5:{name:'Lower Power', emoji:'🟠', color:'var(--lower)', hex:'#ffb74d', desc:'Tungt fokus — underkropp',
+     exercises:['Knebøy (tungt)','Markløft (tungt)','Beinpress (tungt)','Bulgarsk splitsquat','Hip thrust']},
+  6:{name:'Kvile', emoji:'⚪', color:'var(--rest)', hex:'#7d8499', desc:'Restitusjon eller aktiv kvile', exercises:[]},
+  7:{name:'Kvile', emoji:'⚪', color:'var(--rest)', hex:'#7d8499', desc:'Restitusjon eller aktiv kvile', exercises:[]},
+};
+const ACTIVE_RECOVERY_EXAMPLES = ['Spasertur','Yoga','Lett sykling','Symjing','Mobilitet/tøying','Lett jogging'];
+
+const LEVEL_TITLES = [
+  [1,'Nybyrjar'],[5,'På veg'],[10,'Ivrig trenar'],[15,'Disiplinert'],[20,'Konsistent'],
+  [30,'Sterk'],[40,'Veteran'],[50,'Ekspert'],[60,'Elite'],[70,'Meister'],
+  [80,'Legende'],[90,'Ikon'],[100,'Udødeleg']
+];
+
+const ACHIEVEMENTS_DEF = [
+  {id:'first_session', emoji:'🎉', name:'Første steg',      desc:'Fullfør di aller første treningsøkt'},
+  {id:'sessions_10',   emoji:'📅', name:'Vanen sit',         desc:'Fullfør 10 treningsøkter'},
+  {id:'sessions_50',   emoji:'🗓️', name:'Rutinemeister',     desc:'Fullfør 50 treningsøkter'},
+  {id:'sessions_100',  emoji:'💼', name:'Hundre økter',      desc:'Fullfør 100 treningsøkter'},
+  {id:'streak_3',      emoji:'🔥', name:'3 på rad',          desc:'Tren 3 dagar i strekk'},
+  {id:'streak_5',      emoji:'🔥🔥', name:'5 dagar på rad',   desc:'Tren 5 dagar i strekk'},
+  {id:'streak_7',      emoji:'🔥🔥🔥', name:'Ei heil veke',   desc:'Tren 7 dagar i strekk utan pause'},
+  {id:'streak_30',     emoji:'🌟', name:'30 dagars streik',  desc:'Tren 30 dagar i strekk'},
+  {id:'points_500',    emoji:'✨', name:'500 poeng',         desc:'Samle 500 poeng totalt'},
+  {id:'points_1000',   emoji:'💯', name:'1000 poeng',        desc:'Samle 1000 poeng totalt'},
+  {id:'points_5000',   emoji:'💎', name:'5000 poeng',        desc:'Samle 5000 poeng totalt'},
+  {id:'points_10000',  emoji:'👑', name:'10 000 poeng',      desc:'Samle 10 000 poeng totalt'},
+  {id:'level_10',      emoji:'⭐', name:'Nivå 10',           desc:'Nå nivå 10'},
+  {id:'level_25',      emoji:'🌠', name:'Nivå 25',           desc:'Nå nivå 25'},
+  {id:'level_50',      emoji:'☄️', name:'Nivå 50',           desc:'Nå nivå 50'},
+  {id:'level_100',     emoji:'🏆', name:'Nivå 100',          desc:'Nå det aller høgaste nivået'},
+  {id:'new_pr',        emoji:'🏆', name:'Ny PR',             desc:'Slå din eigen rekord i ei øving'},
+  {id:'volume_10k',    emoji:'📦', name:'10 tonn løfta',     desc:'Nå 10 000 kg i totalt volum'},
+  {id:'volume_100k',   emoji:'🚛', name:'100 tonn løfta',    desc:'Nå 100 000 kg i totalt volum'},
+  {id:'all_days',      emoji:'🌈', name:'Heile splitten',    desc:'Fullfør alle 5 treningsdagar minst éin gong'},
+];
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+function el(id){ return document.getElementById(id); }
+function todayStr(d){ d = d||new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+function parseDateStr(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function isoWeekday(d){ const wd = d.getDay(); return wd===0?7:wd; } // Måndag=1 ... Søndag=7
+function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function formatDateNice(dateStr){ const d = parseDateStr(dateStr); return `${d.getDate()}. ${NOR_MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
+function daysBetween(aStr,bStr){ return Math.round((parseDateStr(bStr) - parseDateStr(aStr)) / 86400000); }
+function levelFromPoints(points){ return clamp(Math.floor(points/100)+1, 1, 100); }
+function pointsForLevel(level){ return (level-1)*100; }
+function levelTitle(level){ let t=LEVEL_TITLES[0][1]; for(const [lvl,name] of LEVEL_TITLES){ if(level>=lvl) t=name; } return t; }
+function totalSets(log){ return log.exercises.reduce((sum,ex)=>sum+ex.sets.length,0); }
+function sessionVolume(log){ return log.exercises.reduce((sum,ex)=>sum + ex.sets.reduce((s,set)=> s + (Number(set.weight)||0)*(Number(set.reps)||0), 0), 0); }
+function dayLabel(idx){ return SPLIT_DAYS[idx] ? SPLIT_DAYS[idx].name : '—'; }
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const State = {
+  data: null,
+  load(){
+    let raw = null;
+    try{ raw = localStorage.getItem(STORAGE_KEY); }catch(e){}
+    if(raw){ try{ this.data = JSON.parse(raw); }catch(e){ this.data = null; } }
+    if(!this.data) this.data = this.fresh();
+    const f = this.fresh();
+    this.data.profile = Object.assign({}, f.profile, this.data.profile);
+    this.data.settings = Object.assign({}, f.settings, this.data.settings);
+    this.data.gamification = Object.assign({}, f.gamification, this.data.gamification);
+    if(!Array.isArray(this.data.logs)) this.data.logs = [];
+    if(!Array.isArray(this.data.achievements)) this.data.achievements = [];
+    if(!Array.isArray(this.data.chat)) this.data.chat = [];
+    return this.data;
+  },
+  fresh(){
+    return {
+      onboarded:false,
+      profile:{ name:'', goal:'muskel', createdAt: todayStr() },
+      settings:{ theme:'dark', apiKey:'', model:'claude-3-5-sonnet-20241022' },
+      gamification:{ totalPoints:0, streak:0, longestStreak:0, lastActiveDate:null },
+      logs:[],
+      achievements:[],
+      chat:[]
+    };
+  },
+  save(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); }
+    catch(e){ Toast.show('⚠️ Klarte ikkje lagre — lagringsplassen kan vere full','error'); }
+  }
+};
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+const Toast = {
+  show(msg, type){
+    const wrap = el('toast-wrap');
+    const t = document.createElement('div');
+    t.className = 'toast' + (type ? ' '+type : '');
+    t.innerHTML = msg;
+    wrap.appendChild(t);
+    const life = type==='achievement' ? 4200 : 2800;
+    setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(-12px)'; t.style.transition='.3s'; setTimeout(()=>t.remove(), 320); }, life);
+  },
+  success(msg){ this.show(msg,'success'); },
+  achievement(name, emoji){ this.show(`${emoji||'🏅'} <span>Prestasjon låst opp: <strong>${escapeHtml(name)}</strong></span>`,'achievement'); }
+};
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+const Modal = {
+  open(html){ el('modal-content').innerHTML = html; el('modal-backdrop').classList.add('show'); },
+  close(){ el('modal-backdrop').classList.remove('show'); }
+};
+document.addEventListener('click', e=>{ if(e.target && e.target.id === 'modal-backdrop') Modal.close(); });
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+const Router = {
+  current:'dashboard',
+  go(view){
+    this.current = view;
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    el('view-'+view).classList.add('active');
+    const navBtn = document.querySelector(`.nav-btn[data-view="${view}"]`);
+    if(navBtn) navBtn.classList.add('active');
+    if(view==='dashboard') Dashboard.render();
+    if(view==='training') Training.render();
+    if(view==='coach') Coach.render();
+    if(view==='stats') Stats.render();
+    if(view==='settings') Settings.render();
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+};
+/* ============================================================
+   ONBOARDING
+   ============================================================ */
+const Onboarding = {
+  step:0,
+  goal:'muskel',
+  init(){
+    this.renderDots();
+    document.querySelectorAll('#ob-goal-grid .goal-opt').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('#ob-goal-grid .goal-opt').forEach(b=>b.classList.remove('sel'));
+        btn.classList.add('sel');
+        this.goal = btn.dataset.goal;
+      });
+    });
+    document.querySelector('#ob-goal-grid .goal-opt').classList.add('sel');
+  },
+  renderDots(){
+    const total = document.querySelectorAll('.onboard-step').length;
+    el('onboard-dots').innerHTML = Array.from({length:total}).map((_,i)=>`<span class="${i===this.step?'on':''}"></span>`).join('');
+  },
+  show(idx){
+    this.step = idx;
+    document.querySelectorAll('.onboard-step').forEach(s=> s.classList.toggle('active', Number(s.dataset.step)===idx));
+    this.renderDots();
+  },
+  next(){ this.show(this.step+1); },
+  saveName(){
+    const name = el('ob-name').value.trim();
+    State.data.profile.name = name || 'Trenar';
+    this.next();
+  },
+  saveGoal(){
+    State.data.profile.goal = this.goal;
+    this.next();
+  },
+  finish(){
+    const key = el('ob-apikey').value.trim();
+    if(key) State.data.settings.apiKey = key;
+    State.data.onboarded = true;
+    State.save();
+    el('onboarding').style.display = 'none';
+    el('app').style.display = '';
+    App.boot();
+    Toast.success(`🎉 Velkomen, ${escapeHtml(State.data.profile.name)}! Klar for første økt?`);
+  }
+};
+
+/* ============================================================
+   GAMIFICATION
+   ============================================================ */
+const Gamification = {
+  POINTS_PER_SESSION: 100,
+  POINTS_PER_SET: 10,
+  STREAK_BONUS: 50,
+  STREAK_BONUS_INTERVAL: 7,
+
+  registerActivity(dateStr){
+    const g = State.data.gamification;
+    const last = g.lastActiveDate;
+    if(last === dateStr) return; // already counted today
+    if(last && daysBetween(last, dateStr) === 1){
+      g.streak += 1;
+    } else if(!last || daysBetween(last, dateStr) !== 0){
+      g.streak = 1;
+    }
+    g.lastActiveDate = dateStr;
+    g.longestStreak = Math.max(g.longestStreak, g.streak);
+    if(g.streak > 0 && g.streak % this.STREAK_BONUS_INTERVAL === 0){
+      g.totalPoints += this.STREAK_BONUS;
+      Toast.show(`🔥 ${g.streak} dagars streik! Bonus: <strong>+${this.STREAK_BONUS} poeng</strong>`,'achievement');
+    }
+  },
+
+  awardSession(log){
+    const sets = totalSets(log);
+    const points = this.POINTS_PER_SESSION + sets * this.POINTS_PER_SET;
+    const beforeLevel = levelFromPoints(State.data.gamification.totalPoints);
+    State.data.gamification.totalPoints += points;
+    log.points = points;
+    this.registerActivity(log.date);
+    const afterLevel = levelFromPoints(State.data.gamification.totalPoints);
+    if(afterLevel > beforeLevel){
+      Toast.show(`⭐ Nivå opp! Du er no <strong>nivå ${afterLevel}</strong> — ${escapeHtml(levelTitle(afterLevel))}`,'achievement');
+    }
+    return points;
+  },
+
+  detectPRs(log){
+    const prs = [];
+    log.exercises.forEach(ex=>{
+      let histMax = 0;
+      State.data.logs.forEach(l=>{
+        if(l.id===log.id) return;
+        l.exercises.forEach(e2=>{ if(e2.name===ex.name){ e2.sets.forEach(s=>{ histMax = Math.max(histMax, Number(s.weight)||0); }); } });
+      });
+      const sessionMax = ex.sets.reduce((m,s)=>Math.max(m, Number(s.weight)||0), 0);
+      if(sessionMax > 0 && sessionMax > histMax) prs.push({name:ex.name, weight:sessionMax});
+    });
+    return prs;
+  },
+
+  unlockedIds(){ return new Set(State.data.achievements.map(a=>a.id)); },
+
+  unlock(id){
+    if(this.unlockedIds().has(id)) return false;
+    const def = ACHIEVEMENTS_DEF.find(a=>a.id===id);
+    if(!def) return false;
+    State.data.achievements.push({id, unlockedAt: todayStr()});
+    Toast.achievement(def.name, def.emoji);
+    return true;
+  },
+
+  checkAll(){
+    const d = State.data, g = d.gamification;
+    const completed = d.logs.filter(l=>l.completed);
+    const level = levelFromPoints(g.totalPoints);
+    const totalVolume = completed.reduce((s,l)=>s+sessionVolume(l),0);
+    const daysCovered = new Set(completed.map(l=>l.dayIndex));
+
+    if(completed.length>=1) this.unlock('first_session');
+    if(completed.length>=10) this.unlock('sessions_10');
+    if(completed.length>=50) this.unlock('sessions_50');
+    if(completed.length>=100) this.unlock('sessions_100');
+
+    if(g.streak>=3 || g.longestStreak>=3) this.unlock('streak_3');
+    if(g.streak>=5 || g.longestStreak>=5) this.unlock('streak_5');
+    if(g.streak>=7 || g.longestStreak>=7) this.unlock('streak_7');
+    if(g.streak>=30 || g.longestStreak>=30) this.unlock('streak_30');
+
+    if(g.totalPoints>=500) this.unlock('points_500');
+    if(g.totalPoints>=1000) this.unlock('points_1000');
+    if(g.totalPoints>=5000) this.unlock('points_5000');
+    if(g.totalPoints>=10000) this.unlock('points_10000');
+
+    if(level>=10) this.unlock('level_10');
+    if(level>=25) this.unlock('level_25');
+    if(level>=50) this.unlock('level_50');
+    if(level>=100) this.unlock('level_100');
+
+    if(totalVolume>=10000) this.unlock('volume_10k');
+    if(totalVolume>=100000) this.unlock('volume_100k');
+
+    if([1,2,3,4,5].every(d=>daysCovered.has(d))) this.unlock('all_days');
+  }
+};
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+const Dashboard = {
+  render(){
+    const d = State.data, g = d.gamification;
+    const hour = new Date().getHours();
+    const greeting = hour<6 ? '🌙 Oppe tidleg, eller seint ute?' : hour<10 ? '☀️ God morgon!' : hour<17 ? '👋 God dag!' : hour<22 ? '🌆 God kveld!' : '🌙 Sein kveld-trening?';
+    el('dash-greeting').textContent = greeting;
+    el('dash-username').textContent = d.profile.name ? `Klar for trening, ${d.profile.name}?` : 'Klar for trening?';
+
+    const level = levelFromPoints(g.totalPoints);
+    const curBase = pointsForLevel(level), nextBase = pointsForLevel(level+1);
+    const span = nextBase - curBase;
+    const into = clamp(g.totalPoints - curBase, 0, span);
+    const pct = level>=100 ? 100 : Math.round((into/span)*100);
+    el('dash-level').textContent = level;
+    el('dash-level-title').textContent = levelTitle(level);
+    el('dash-xp-label').textContent = level>=100 ? `${g.totalPoints} XP — MAX NIVÅ` : `${into} / ${span} XP til nivå ${level+1}`;
+    requestAnimationFrame(()=>{ el('dash-xp-bar').style.width = pct+'%'; });
+
+    el('dash-total-points').textContent = g.totalPoints.toLocaleString('nb-NO');
+    el('dash-streak').textContent = g.streak;
+    el('dash-sessions').textContent = d.logs.filter(l=>l.completed).length;
+    el('streak-count').textContent = g.streak;
+
+    this.renderToday();
+    this.renderAchievements();
+    this.renderLeaderboard();
+  },
+
+  renderToday(){
+    const idx = Training.todaysSplitIndex();
+    const day = SPLIT_DAYS[idx];
+    const card = el('dash-today-content');
+    const todaysLog = Training.findLog(todayStr(), idx);
+    const isRest = idx===6 || idx===7;
+    let html = `<div class="row" style="margin-bottom:10px;">
+        <span class="day-chip" style="background:${day.hex}">${day.emoji} ${escapeHtml(day.name)}</span>
+        <span class="faint">${escapeHtml(day.desc)}</span>
+      </div>`;
+    if(isRest){
+      html += `<p class="muted">I dag er det kviledag. ${todaysLog && todaysLog.completed ? 'Du har allereie logga aktiv kvile i dag — godt jobba! 🙌' : 'Du kan logge ei lett aktiv økt for å halde streiken i live.'}</p>`;
+    } else if(todaysLog && todaysLog.completed){
+      html += `<p class="muted">✅ Du har fullført dagens økt — <strong>${totalSets(todaysLog)} sett</strong> og <strong>+${todaysLog.points} poeng</strong>. Godt jobba! 💪</p>`;
+    } else {
+      html += `<p class="muted">Føreslåtte øvingar: ${day.exercises.slice(0,4).map(escapeHtml).join(', ')}${day.exercises.length>4?' …':''}</p>`;
+    }
+    html += `<button class="btn btn-primary btn-block" style="margin-top:14px" onclick="Router.go('training')">
+        ${todaysLog && todaysLog.completed ? '👀 Sjå dagens økt' : isRest ? '➕ Logg aktiv kvile' : '🏋️ Start dagens økt'}
+      </button>`;
+    card.innerHTML = html;
+  },
+
+  renderAchievements(){
+    const unlocked = State.data.achievements.slice().sort((a,b)=> b.unlockedAt.localeCompare(a.unlockedAt)).slice(0,3);
+    const wrap = el('dash-achievements');
+    if(!unlocked.length){
+      wrap.innerHTML = `<div class="empty-hint"><span class="ic">🔒</span>Ingen prestasjonar enno — fullfør di første økt for å låse opp!</div>`;
+      return;
+    }
+    wrap.innerHTML = unlocked.map(a=>{
+      const def = ACHIEVEMENTS_DEF.find(x=>x.id===a.id) || {emoji:'🏅',name:a.id,desc:''};
+      return `<div class="row" style="padding:8px 0; border-bottom:1px solid var(--border);">
+          <span class="badge gold">${def.emoji} ${escapeHtml(def.name)}</span>
+          <span class="faint">${formatDateNice(a.unlockedAt)}</span>
+        </div>`;
+    }).join('');
+  },
+
+  renderLeaderboard(){
+    const top = State.data.logs.filter(l=>l.completed).slice().sort((a,b)=> (b.points||0)-(a.points||0)).slice(0,5);
+    const wrap = el('dash-leaderboard');
+    if(!top.length){
+      wrap.innerHTML = `<div class="empty-hint"><span class="ic">🏆</span>Ingen økter logga enno. Fullfør ei økt for å kome på lista!</div>`;
+      return;
+    }
+    const medals = ['🥇','🥈','🥉','4.','5.'];
+    wrap.innerHTML = top.map((l,i)=>{
+      const day = SPLIT_DAYS[l.dayIndex] || {name:'Økt',hex:'#888'};
+      return `<div class="row" style="padding:8px 0; border-bottom:1px solid var(--border);">
+          <span style="font-weight:800;">${medals[i]} <span class="day-chip" style="background:${day.hex}; padding:4px 10px; font-size:.8rem;">${day.emoji} ${escapeHtml(day.name)}</span></span>
+          <span class="faint">${formatDateNice(l.date)}</span>
+          <strong style="color:var(--accent);">+${l.points} p</strong>
+        </div>`;
+    }).join('');
+  }
+};
+
+/* ============================================================
+   APP BOOTSTRAP
+   ============================================================ */
+const App = {
+  start(){
+    State.load();
+    if(State.data.onboarded){
+      el('onboarding').style.display = 'none';
+      el('app').style.display = '';
+      this.boot();
+    } else {
+      Onboarding.init();
+    }
+  },
+  boot(){
+    if(State.data.settings.theme === 'light') document.body.classList.add('light');
+    Gamification.checkAll();
+    State.save();
+    Router.go('dashboard');
+  }
+};
+document.addEventListener('DOMContentLoaded', ()=> App.start());
+/* ============================================================
+   TRAINING LOG
+   ============================================================ */
+const Training = {
+  selectedDay: null,
+
+  todaysSplitIndex(){ return isoWeekday(new Date()); },
+  findLog(date, dayIndex){ return State.data.logs.find(l=>l.date===date && l.dayIndex===dayIndex); },
+  ensureLog(date, dayIndex){
+    let log = this.findLog(date, dayIndex);
+    if(!log){
+      log = { id:uid(), date, dayIndex, dayName: SPLIT_DAYS[dayIndex].name, exercises:[], completed:false, points:0, finishedAt:null };
+      State.data.logs.push(log);
+      State.save();
+    }
+    return log;
+  },
+  allKnownExercises(){
+    const set = new Set();
+    Object.values(SPLIT_DAYS).forEach(d=> d.exercises.forEach(e=> set.add(e)));
+    State.data.logs.forEach(l=> l.exercises.forEach(e=> set.add(e.name)));
+    return Array.from(set);
+  },
+  lastResult(name, excludeLogId){
+    const matches = State.data.logs
+      .filter(l=> l.id!==excludeLogId && l.completed && l.exercises.some(e=>e.name===name))
+      .sort((a,b)=> b.date.localeCompare(a.date));
+    if(!matches.length) return null;
+    const log = matches[0];
+    return { date: log.date, sets: log.exercises.find(e=>e.name===name).sets };
+  },
+
+  render(){
+    if(this.selectedDay==null) this.selectedDay = this.todaysSplitIndex();
+    const picker = el('train-day-picker');
+    if(!picker.options.length){
+      for(let i=1;i<=7;i++){
+        const day = SPLIT_DAYS[i];
+        const opt = document.createElement('option');
+        opt.value = i; opt.textContent = `Dag ${i} — ${day.name}`;
+        picker.appendChild(opt);
+      }
+    }
+    picker.value = this.selectedDay;
+
+    const day = SPLIT_DAYS[this.selectedDay];
+    const isToday = this.selectedDay === this.todaysSplitIndex();
+    el('train-day-title').innerHTML = `${day.emoji} ${isToday ? 'Dagens økt' : escapeHtml(day.name)}`;
+    el('train-day-sub').innerHTML = `<span class="day-chip" style="background:${day.hex}; padding:5px 11px; font-size:.78rem;">${day.emoji} ${escapeHtml(day.name)}</span> &nbsp;${escapeHtml(day.desc)}${isToday ? ' · <strong style="color:var(--accent)">i dag</strong>' : ''}`;
+
+    const isRest = (this.selectedDay===6 || this.selectedDay===7);
+    const log = isToday ? this.findLog(todayStr(), this.selectedDay) : null;
+    const hasEntries = !!(log && log.exercises.length);
+
+    el('train-rest-notice').style.display = (isToday && isRest && !hasEntries) ? '' : 'none';
+    el('train-add-card').style.display = (isToday && !(log && log.completed)) ? '' : 'none';
+    el('train-finish-btn').style.display = (isToday && hasEntries && !log.completed) ? '' : 'none';
+
+    const list = el('train-exercise-list');
+    if(!isToday){
+      list.innerHTML = `<div class="card"><div class="empty-hint"><span class="ic">${day.emoji}</span>
+          Du kan logge for <strong>dagens treningsdag</strong>. Her er kva som ventar på deg:<br><br>
+          ${day.exercises.length ? day.exercises.map(escapeHtml).join(' · ') : 'Kviledag — ingen faste øvingar'}
+        </div></div>`;
+      return;
+    }
+    if(!hasEntries){
+      list.innerHTML = isRest ? '' : `<div class="card"><div class="empty-hint"><span class="ic">${day.emoji}</span>
+          Ingen øvingar logga enno. Legg til frå skjemaet under — her er forslag til ${escapeHtml(day.name)}:<br><br>
+          <strong>${day.exercises.map(escapeHtml).join(' · ')}</strong>
+        </div></div>`;
+    } else {
+      list.innerHTML = log.exercises.map(ex=> this.exerciseCardHtml(log, ex)).join('');
+    }
+    if(log && log.completed){
+      list.innerHTML += `<div class="card" style="text-align:center; border-color:var(--good)">
+          <div style="font-size:2rem;">✅</div>
+          <strong style="color:var(--good)">Økt fullført!</strong>
+          <p class="faint" style="margin-top:6px;">${totalSets(log)} sett · +${log.points} poeng · ${formatDateNice(log.date)}</p>
+        </div>`;
+    }
+  },
+
+  changeDay(val){ this.selectedDay = Number(val); this.render(); },
+
+  exerciseCardHtml(log, ex){
+    const last = this.lastResult(ex.name, log.id);
+    const lastTxt = last
+      ? `Sist: <strong>${last.sets.map(s=>`${s.weight||0}kg×${s.reps||0}`).join(', ')}</strong> <span class="faint">(${formatDateNice(last.date)})</span>`
+      : 'Ingen tidlegare resultat enno';
+    const setsHtml = ex.sets.map((s,sIdx)=>`
+        <div class="set-row">
+          <span class="set-num">#${sIdx+1}</span>
+          <input type="number" inputmode="numeric" min="0" placeholder="Reps" value="${s.reps===''||s.reps==null?'':s.reps}" ${log.completed?'disabled':''}
+            onchange="Training.updateSet('${log.id}','${ex.id}',${sIdx},'reps',this.value)">
+          <input type="number" inputmode="decimal" min="0" step="0.5" placeholder="Kg" value="${s.weight===''||s.weight==null?'':s.weight}" ${log.completed?'disabled':''}
+            onchange="Training.updateSet('${log.id}','${ex.id}',${sIdx},'weight',this.value)">
+          <input type="number" inputmode="numeric" min="1" max="10" placeholder="RPE" value="${s.rpe===''||s.rpe==null?'':s.rpe}" ${log.completed?'disabled':''}
+            onchange="Training.updateSet('${log.id}','${ex.id}',${sIdx},'rpe',this.value)">
+          ${log.completed ? '<span></span>' : `<button class="rm-set" title="Fjern sett" onclick="Training.removeSet('${log.id}','${ex.id}',${sIdx})">✕</button>`}
+        </div>`).join('');
+    return `<div class="exercise-card">
+        <div class="row">
+          <h4>${escapeHtml(ex.name)}</h4>
+          ${log.completed ? '' : `<button class="btn btn-ghost btn-sm" title="Fjern øving" onclick="Training.removeExercise('${log.id}','${ex.id}')">🗑️</button>`}
+        </div>
+        <div class="last-result">📊 ${lastTxt}</div>
+        ${ex.sets.length ? `<div class="set-labels"><span></span><span>Reps</span><span>Kg</span><span>RPE</span><span></span></div>` : ''}
+        ${setsHtml}
+        ${log.completed ? (ex.note?`<div class="last-result" style="margin-top:8px;">📝 ${escapeHtml(ex.note)}</div>`:'') : `
+        <div class="exercise-actions">
+          <button class="btn btn-sm btn-primary" onclick="Training.addSet('${log.id}','${ex.id}')">➕ Legg til sett</button>
+          <input type="text" class="btn-sm" style="border:1px solid var(--border); border-radius:10px; background:var(--bg-card); flex:1; min-width:140px; padding:8px 12px;"
+            placeholder="Notat (valfritt)…" value="${escapeHtml(ex.note||'')}" onchange="Training.updateNote('${log.id}','${ex.id}',this.value)">
+        </div>`}
+      </div>`;
+  },
+
+  autocomplete(query){
+    const list = el('train-autocomplete');
+    const q = query.trim().toLowerCase();
+    const all = this.allKnownExercises();
+    const matches = (q ? all.filter(n=> n.toLowerCase().includes(q) && n.toLowerCase()!==q) : all).slice(0,8);
+    list.innerHTML = '';
+    if(!matches.length){ list.classList.remove('show'); return; }
+    matches.forEach(name=>{
+      const item = document.createElement('div');
+      item.textContent = name;
+      item.onclick = ()=>{ el('train-new-exercise').value = name; list.classList.remove('show'); el('train-new-exercise').focus(); };
+      list.appendChild(item);
+    });
+    list.classList.add('show');
+  },
+
+  addExercise(){
+    const input = el('train-new-exercise');
+    const name = input.value.trim();
+    if(!name){ Toast.show('⚠️ Skriv inn namnet på øvinga først'); return; }
+    const log = this.ensureLog(todayStr(), this.todaysSplitIndex());
+    if(log.completed){ Toast.show('Denne økta er allereie fullført ✅'); return; }
+    log.exercises.push({ id:uid(), name, sets:[{reps:'',weight:'',rpe:''}], note:'' });
+    State.save();
+    input.value = '';
+    el('train-autocomplete').classList.remove('show');
+    this.selectedDay = this.todaysSplitIndex();
+    this.render();
+    Toast.success(`➕ La til ${escapeHtml(name)}`);
+  },
+  removeExercise(logId, exId){
+    const log = State.data.logs.find(l=>l.id===logId);
+    log.exercises = log.exercises.filter(e=>e.id!==exId);
+    State.save(); this.render();
+  },
+  addSet(logId, exId){
+    const ex = State.data.logs.find(l=>l.id===logId).exercises.find(e=>e.id===exId);
+    ex.sets.push({reps:'',weight:'',rpe:''});
+    State.save(); this.render();
+  },
+  removeSet(logId, exId, idx){
+    const ex = State.data.logs.find(l=>l.id===logId).exercises.find(e=>e.id===exId);
+    ex.sets.splice(idx,1);
+    State.save(); this.render();
+  },
+  updateSet(logId, exId, idx, field, value){
+    const ex = State.data.logs.find(l=>l.id===logId).exercises.find(e=>e.id===exId);
+    if(value===''){ ex.sets[idx][field] = ''; }
+    else if(field==='rpe'){ ex.sets[idx][field] = clamp(Math.round(Number(value)), 1, 10); }
+    else { ex.sets[idx][field] = Math.max(0, Number(value)); }
+    State.save();
+  },
+  updateNote(logId, exId, value){
+    State.data.logs.find(l=>l.id===logId).exercises.find(e=>e.id===exId).note = value;
+    State.save();
+  },
+
+  startActiveRecovery(){
+    const idx = this.todaysSplitIndex();
+    const log = this.ensureLog(todayStr(), idx);
+    if(log.completed){ Toast.show('Du har allereie logga ei økt i dag 🙌'); return; }
+    if(!log.exercises.length){
+      const example = ACTIVE_RECOVERY_EXAMPLES[Math.floor(Math.random()*ACTIVE_RECOVERY_EXAMPLES.length)];
+      log.exercises.push({id:uid(), name:example, sets:[{reps:'',weight:'',rpe:''}], note:'Aktiv kvile'});
+    }
+    State.save();
+    this.selectedDay = idx;
+    this.render();
+    Toast.success('💡 Aktiv kvile-økt starta — fyll ut og fullfør for å halde streiken i live!');
+  },
+
+  finishSession(){
+    const idx = this.todaysSplitIndex();
+    const log = this.findLog(todayStr(), idx);
+    if(!log || !log.exercises.length || !totalSets(log)){
+      Toast.show('⚠️ Legg til minst éi øving med eitt sett før du fullfører økta');
+      return;
+    }
+    log.completed = true;
+    log.finishedAt = new Date().toISOString();
+    const points = Gamification.awardSession(log);
+    const prs = Gamification.detectPRs(log);
+    if(prs.length) Gamification.unlock('new_pr');
+    Gamification.checkAll();
+    State.save();
+    this.render();
+    Dashboard.render();
+    Toast.show(`🎉 Økt fullført! <strong>+${points} poeng</strong> for ${totalSets(log)} sett 💪`, 'success');
+    if(prs.length){
+      setTimeout(()=> Toast.show(`🏆 Ny PR: ${prs.map(p=>`${escapeHtml(p.name)} @ ${p.weight}kg`).join(', ')}!`, 'achievement'), 900);
+    }
+    Coach.noteSessionCompleted(log, prs);
+  }
+};
+document.addEventListener('click', e=>{
+  const wrap = document.querySelector('#view-training .autocomplete-wrap');
+  if(wrap && !wrap.contains(e.target)) el('train-autocomplete').classList.remove('show');
+});
+/* ============================================================
+   AI COACH
+   ============================================================ */
+const Coach = {
+  busy:false,
+
+  render(){
+    el('coach-key-hint').style.display = State.data.settings.apiKey ? 'none' : '';
+    this.renderMessages();
+  },
+  renderMessages(){
+    const win = el('chat-window');
+    if(!State.data.chat.length){
+      win.innerHTML = `<div class="empty-hint"><span class="ic">🤖</span>Hei${State.data.profile.name?', '+escapeHtml(State.data.profile.name):''}! Eg er coachen din. Spør meg om noko, eller trykk på ein snarveg over for å kome i gang. 👋</div>`;
+      return;
+    }
+    win.innerHTML = State.data.chat.map(m=>
+      `<div class="msg ${m.role==='user'?'user':'bot'}">${escapeHtml(m.content)}</div>`
+    ).join('');
+    win.scrollTop = win.scrollHeight;
+  },
+  ask(text){ el('chat-input').value = text; this.send(); },
+
+  async send(){
+    if(this.busy) return;
+    const input = el('chat-input');
+    const text = input.value.trim();
+    if(!text) return;
+    input.value = '';
+    State.data.chat.push({role:'user', content:text, ts:Date.now()});
+    State.save();
+    this.renderMessages();
+    this.busy = true;
+    this.showTyping();
+    let reply;
+    try{
+      if(State.data.settings.apiKey){
+        reply = await this.callAnthropicAPI(text);
+      } else {
+        await new Promise(r=>setTimeout(r, 450 + Math.random()*450));
+        reply = this.localReply(text);
+      }
+    }catch(err){
+      reply = `⚠️ Klarte ikkje nå AI-tenesta akkurat no (${err.message}).\n\nHer er eit lokalt svar i staden:\n${this.localReply(text)}`;
+    }
+    this.hideTyping();
+    this.busy = false;
+    State.data.chat.push({role:'assistant', content:reply, ts:Date.now()});
+    State.save();
+    this.renderMessages();
+  },
+  showTyping(){
+    const win = el('chat-window');
+    const t = document.createElement('div');
+    t.className = 'msg bot typing';
+    t.id = 'typing-indicator';
+    t.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+    win.appendChild(t);
+    win.scrollTop = win.scrollHeight;
+  },
+  hideTyping(){ const t = el('typing-indicator'); if(t) t.remove(); },
+
+  buildSystemPrompt(){
+    const d = State.data, g = d.gamification;
+    const level = levelFromPoints(g.totalPoints);
+    const completed = d.logs.filter(l=>l.completed).sort((a,b)=> b.date.localeCompare(a.date));
+    const recentTxt = completed.slice(0,5).map(l=>{
+      const day = SPLIT_DAYS[l.dayIndex];
+      const exList = l.exercises.map(ex=> `${ex.name} [${ex.sets.map(s=>`${s.weight||0}kg×${s.reps||0}@RPE${s.rpe||'-'}`).join(', ')}]`).join('; ');
+      return `${l.date} (${day.name}, ${totalSets(l)} sett, ${l.points}p): ${exList}`;
+    }).join('\n');
+    return [
+      `Du er "FitForge AI Coach" — ein varm, kunnskapsrik og motiverande personleg trenar inni ein treningsapp.`,
+      `Svar ALLTID på norsk, kort og konkret (helst under 6 setningar med mindre brukaren ber om meir), og bruk gjerne ein og annan emoji for å halde tonen leiken og positiv.`,
+      `Brukar: namn=${d.profile.name||'ukjend'}, mål=${d.profile.goal}, nivå=${level} (${levelTitle(level)}), totalpoeng=${g.totalPoints}, noverande streik=${g.streak} dagar (lengste streik=${g.longestStreak}).`,
+      `Treningssplitten i appen: Dag1=Push (bryst/skuldre/triceps), Dag2=Pull (rygg/biceps), Dag3=Legs (bein/glutes), Dag4=Upper Power (tungt overkropp), Dag5=Lower Power (tungt underkropp), Dag6-7=Kvile.`,
+      completed.length ? `Dei ${Math.min(5,completed.length)} siste loggførte øktene (nyaste først):\n${recentTxt}` : `Brukaren har ikkje fullført nokon treningsøkter enno.`,
+      `Bruk denne konteksten aktivt: Gi konkrete, personlege tilbakemeldingar og progresjonsforslag (t.d. "prøv å leggje 2.5kg på neste benkpress-økt", "RPE-en din ligg høgt, vurder ei lettare veke"). Ros innsats og konsistens. Svar på spørsmål om treningsform, ernæring og motivasjon når det vert spurt om.`
+    ].join('\n');
+  },
+  async callAnthropicAPI(userMessage){
+    const apiKey = State.data.settings.apiKey;
+    const model = State.data.settings.model || 'claude-3-5-sonnet-20241022';
+    const history = State.data.chat.slice(-10).map(m=>({role:m.role, content:m.content}));
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 700,
+        system: this.buildSystemPrompt(),
+        messages: history.length ? history : [{role:'user', content:userMessage}]
+      })
+    });
+    if(!res.ok){
+      let detail = '';
+      try{ const j = await res.json(); detail = j.error && j.error.message ? j.error.message : JSON.stringify(j); }catch(e){ detail = await res.text(); }
+      throw new Error(`${res.status} ${detail}`.slice(0,180));
+    }
+    const data = await res.json();
+    return (data.content && data.content[0] && data.content[0].text) ? data.content[0].text.trim() : '(tomt svar frå API)';
+  },
+
+  localReply(text){
+    const q = text.toLowerCase();
+    const d = State.data, g = d.gamification;
+    const completed = d.logs.filter(l=>l.completed).sort((a,b)=> b.date.localeCompare(a.date));
+    const level = levelFromPoints(g.totalPoints);
+
+    if(/i dag|kva.*(gjer|trene)|dagens|treningsdag/.test(q)){
+      const idx = Training.todaysSplitIndex();
+      const day = SPLIT_DAYS[idx];
+      if(idx>=6) return `I dag er det 😌 kviledag! Kroppen byggjer seg sterkare medan du kviler. Lett aktivitet som spasertur eller tøying er perfekt — eller logg ei "aktiv kvile"-økt under Treningslogger for å halde streiken i live. 🔥`;
+      return `I dag er det ${day.emoji} ${day.name}-dag — fokus på ${day.desc.toLowerCase()}. Forslag til øvingar: ${day.exercises.join(', ')}. Varm godt opp og prioriter god teknikk framfor tunge vekter — lukke til! 💪`;
+    }
+    if(/progresjon|framgang|går det|utvikling|stats|statistikk/.test(q)){
+      if(!completed.length) return `Du har ikkje fullført nokon økter enno, så eg har ikkje noko å samanlikne med enda. Logg di første økt i dag, så byrjar eg å følgje utviklinga di! 📈`;
+      const vol = Math.round(completed.reduce((s,l)=>s+sessionVolume(l),0));
+      return `Du har fullført ${completed.length} økter og er på nivå ${level} (${levelTitle(level)}) med ${g.totalPoints.toLocaleString('nb-NO')} poeng 🌟. Totalt har du løfta omlag ${vol.toLocaleString('nb-NO')} kg, og du har ein streik på ${g.streak} dagar. ${g.streak>=3?'Strålande konsistens — berre hald fram! 🔥':'Prøv å byggje ein lengre streik — kvar 7. dag på rad gjev 50 bonuspoeng!'}`;
+    }
+    if(/form|teknikk/.test(q)){
+      return `Nokre kjerneprinsipp for god form: 1) Kontroller vekta gjennom heile rørsla — ikkje bruk sleng, 2) pust ut på anstrengingsfasen, 3) sikt på RPE 7-9 på arbeidssett og spar 9-10 til eventuelle toppsett, 4) film deg sjølv og samanlikn med gode referansar. Betre å løfte litt lettare med presis teknikk enn tungt med dårleg form! 🧘‍♂️`;
+    }
+    if(/ernæring|kosthald|mat|protein|kalori|diett/.test(q)){
+      return `Enkle ernæringstips: sikt mot ca. 1.6–2.2 g protein per kg kroppsvekt for muskelbygging, et nok karbohydrat rundt treningsøkter for energi/restitusjon, og hald deg godt hydrert. Søvn (7-9t) er ein undervurdert "ingrediens" for framgang — prioriter den! 🥗💧😴`;
+    }
+    if(/motiver|motivasjon|gidd|orke|sliten|lyst/.test(q)){
+      const lines = [
+        `${completed.length?`Du har allereie logga ${completed.length} økter`:'Du er allereie i gang'} — det viser at du har det som skal til. Éi økt til, det er alt som trengst akkurat no. 🔥`,
+        `Hugs kvifor du starta. Kvar økt — stor eller liten — er eit steg nærare målet ditt. Du klarer dette! 💪`,
+        `${g.streak>0?`Du har ein streik på ${g.streak} dagar — ikkje knus den no! `:''}Form blir ikkje bygd på dei gode dagane åleine, men på at du dukkar opp sjølv når det er tungt.`,
+        `Tenk på framtids-deg som takkar nåtids-deg for innsatsen i dag. Kom igjen, du har dette — ein økt om gongen! 🚀`
+      ];
+      return lines[Math.floor(Math.random()*lines.length)];
+    }
+    if(/poeng|nivå|level|xp|achievement|prestasjon/.test(q)){
+      const need = Math.max(0, pointsForLevel(level+1) - g.totalPoints);
+      return `Du er på nivå ${level} (${levelTitle(level)}) med ${g.totalPoints.toLocaleString('nb-NO')} poeng — berre ${need} poeng til nivå ${level+1}! Hugs: ei fullført økt gjev 100 poeng + 10 poeng per sett, og 7 dagar i strekk utan pause gjev 50 bonuspoeng. Sjekk Statistikk-fana for å sjå alle prestasjonane dine! 🎮`;
+    }
+    if(completed.length){
+      const last = completed[0];
+      const day = SPLIT_DAYS[last.dayIndex];
+      return `Sist du trente var ${formatDateNice(last.date)} (${day.name}) — du gjorde ${totalSets(last)} sett og henta ${last.points} poeng. Bra jobba! Har du eit konkret spørsmål om trening, ernæring eller framgang, berre spør — eg er her for deg. 😊`;
+    }
+    return `Hei! Eg er AI-coachen din 🤖 — eg gir deg tips om trening, ernæring og motivasjon, og følgjer med på framgangen din etter kvart som du loggar økter. Prøv t.d. å spørje "Kva skal eg gjere i dag?" eller trykk på ein av snarvegane over!`;
+  },
+
+  noteSessionCompleted(log, prs){
+    const day = SPLIT_DAYS[log.dayIndex];
+    const sets = totalSets(log);
+    const vol = Math.round(sessionVolume(log));
+    let msg = `Bra sesjon i dag! 💪 Du gjorde ${sets} sett på ${day.name}-økta og samla <strong>+${log.points} poeng</strong>`.replace('<strong>','').replace('</strong>','');
+    msg += vol ? ` (omlag ${vol.toLocaleString('nb-NO')} kg totalt volum).` : `.`;
+    if(prs.length) msg += ` Og du sette ny PR i ${prs.map(p=>`${p.name} (${p.weight}kg)`).join(', ')} — strålande framgang! 🏆`;
+    let rpeSum=0, rpeCount=0;
+    log.exercises.forEach(ex=>ex.sets.forEach(s=>{ if(s.rpe){ rpeSum+=Number(s.rpe); rpeCount++; } }));
+    if(rpeCount){
+      const avg = rpeSum/rpeCount;
+      if(avg>=9) msg += ` Snitt-RPE var ${avg.toFixed(1)} — ganske høgt! Vurder ei litt roligare veke for å unngå overtrening.`;
+      else if(avg<=5) msg += ` Snitt-RPE var ${avg.toFixed(1)} — du har nok litt meir å gå på. Prøv å leggje på vekt eller nokre ekstra reps neste gong! 📈`;
+      else msg += ` Snitt-RPE på ${avg.toFixed(1)} er eit fint arbeidsområde — hald fram slik!`;
+    }
+    msg += ` Innom AI Coach-fana om du vil prate meir om økta! 🤖`;
+    State.data.chat.push({role:'assistant', content:msg, ts:Date.now()});
+    State.save();
+  }
+};
+/* ============================================================
+   CHARTS (canvas — no external libs)
+   ============================================================ */
+function getCss(varName){ return (getComputedStyle(document.body).getPropertyValue(varName) || '').trim() || '#7c9eff'; }
+function formatShortDate(dateStr){ const d = parseDateStr(dateStr); return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`; }
+function mondayOf(dateStr){ const d = parseDateStr(dateStr); d.setDate(d.getDate() - (isoWeekday(d)-1)); return todayStr(d); }
+function roundRect(ctx,x,y,w,h,r){
+  if(h<0){ y+=h; h=Math.abs(h); }
+  r = Math.min(r, w/2, h/2 || r);
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+const Charts = {
+  setupCanvas(canvas){
+    const ratio = window.devicePixelRatio || 1;
+    const cssHeight = Number(canvas.getAttribute('height')) || 150;
+    const rect = canvas.getBoundingClientRect();
+    const cssWidth = rect.width || canvas.parentElement.clientWidth || 300;
+    canvas.width = cssWidth * ratio;
+    canvas.height = cssHeight * ratio;
+    canvas.style.width = cssWidth+'px';
+    canvas.style.height = cssHeight + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.scale(ratio, ratio);
+    return {ctx, w:cssWidth, h:cssHeight};
+  },
+  emptyState(ctx,w,h,msg){
+    ctx.fillStyle = getCss('--text-faint'); ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(msg, w/2, h/2);
+  },
+  lineChart(canvas, points, opts={}){
+    const {ctx,w,h} = this.setupCanvas(canvas);
+    ctx.clearRect(0,0,w,h);
+    if(!points.length){ this.emptyState(ctx,w,h,'Ingen data enno — fullfør ei økt for å sjå grafen 📈'); return; }
+    const pad = {l:38, r:14, t:14, b:24};
+    const plotW = Math.max(10,w-pad.l-pad.r), plotH = Math.max(10,h-pad.t-pad.b);
+    const maxV = Math.max(...points.map(p=>p.value), 1);
+    ctx.strokeStyle = getCss('--border'); ctx.lineWidth = 1;
+    ctx.fillStyle = getCss('--text-faint'); ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+    for(let i=0;i<=3;i++){
+      const v = Math.round(maxV*i/3);
+      const y = pad.t + plotH - (v/maxV)*plotH;
+      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(w-pad.r,y); ctx.stroke();
+      ctx.fillText(String(v), pad.l-7, y+3);
+    }
+    const color = opts.color || getCss('--accent');
+    const stepX = points.length>1 ? plotW/(points.length-1) : 0;
+    const xy = points.map((p,i)=>[pad.l+stepX*i, pad.t+plotH-(p.value/maxV)*plotH]);
+    ctx.beginPath(); xy.forEach(([x,y],i)=> i===0?ctx.moveTo(x,y):ctx.lineTo(x,y));
+    ctx.lineTo(xy[xy.length-1][0], pad.t+plotH); ctx.lineTo(xy[0][0], pad.t+plotH); ctx.closePath();
+    const grad = ctx.createLinearGradient(0,pad.t,0,pad.t+plotH);
+    grad.addColorStop(0, color+'55'); grad.addColorStop(1, color+'05');
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.beginPath(); xy.forEach(([x,y],i)=> i===0?ctx.moveTo(x,y):ctx.lineTo(x,y));
+    ctx.strokeStyle = color; ctx.lineWidth = 2.4; ctx.lineJoin='round'; ctx.stroke();
+    ctx.fillStyle = color;
+    xy.forEach(([x,y])=>{ ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill(); });
+    ctx.fillStyle = getCss('--text-faint'); ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    const labelEvery = Math.max(1, Math.ceil(points.length/6));
+    points.forEach((p,i)=>{ if(i%labelEvery===0 || i===points.length-1) ctx.fillText(p.label, xy[i][0], h-7); });
+  },
+  barChart(canvas, bars){
+    const {ctx,w,h} = this.setupCanvas(canvas);
+    ctx.clearRect(0,0,w,h);
+    if(!bars.length){ this.emptyState(ctx,w,h,'Ingen data enno'); return; }
+    const pad = {l:30, r:14, t:14, b:24};
+    const plotW = Math.max(10,w-pad.l-pad.r), plotH = Math.max(10,h-pad.t-pad.b);
+    const maxV = Math.max(...bars.map(b=>b.value), 1);
+    ctx.strokeStyle = getCss('--border'); ctx.fillStyle = getCss('--text-faint'); ctx.font='10px sans-serif'; ctx.textAlign='right';
+    for(let i=0;i<=3;i++){
+      const v = Math.round(maxV*i/3);
+      const y = pad.t + plotH - (v/maxV)*plotH;
+      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(w-pad.r,y); ctx.stroke();
+      ctx.fillText(String(v), pad.l-6, y+3);
+    }
+    const slot = plotW/bars.length;
+    const barW = Math.min(30, slot*0.5);
+    ctx.textAlign = 'center';
+    bars.forEach((b,i)=>{
+      const x = pad.l + slot*i + slot/2;
+      const bh = (b.value/maxV)*plotH;
+      ctx.fillStyle = b.color || getCss('--good');
+      roundRect(ctx, x-barW/2, pad.t+plotH-bh, barW, bh, 5); ctx.fill();
+      ctx.fillStyle = getCss('--text-faint'); ctx.font='10px sans-serif';
+      ctx.fillText(b.label, x, h-7);
+    });
+  }
+};
+
+/* ============================================================
+   STATISTICS
+   ============================================================ */
+const Stats = {
+  render(){
+    this.renderPointsChart();
+    this.renderFrequencyChart();
+    this.renderTopExercises();
+    this.renderVolume();
+    this.renderAchievements();
+    this.renderLeaderboard();
+  },
+  renderPointsChart(){
+    const completed = State.data.logs.filter(l=>l.completed).sort((a,b)=> a.date.localeCompare(b.date));
+    const pts = completed.slice(-14).map(l=> ({label: formatShortDate(l.date), value: l.points||0}));
+    Charts.lineChart(el('chart-points'), pts, {color:getCss('--accent')});
+  },
+  renderFrequencyChart(){
+    const completed = State.data.logs.filter(l=>l.completed);
+    const counts = {};
+    completed.forEach(l=>{ const wk = mondayOf(l.date); counts[wk] = (counts[wk]||0)+1; });
+    const thisMonday = mondayOf(todayStr());
+    const weeks = [];
+    for(let i=6;i>=0;i--){ const d = parseDateStr(thisMonday); d.setDate(d.getDate()-7*i); weeks.push(todayStr(d)); }
+    const bars = weeks.map(ws=> ({label: formatShortDate(ws), value: counts[ws]||0, color: getCss('--good')}));
+    Charts.barChart(el('chart-frequency'), bars);
+  },
+  renderTopExercises(){
+    const counts = {};
+    State.data.logs.filter(l=>l.completed).forEach(l=> l.exercises.forEach(ex=>{ counts[ex.name] = (counts[ex.name]||0) + ex.sets.length; }));
+    const sorted = Object.entries(counts).sort((a,b)=> b[1]-a[1]).slice(0,6);
+    const wrap = el('stats-top-exercises');
+    if(!sorted.length){ wrap.innerHTML = `<div class="empty-hint"><span class="ic">🏋️</span>Ingen data enno</div>`; return; }
+    const max = sorted[0][1];
+    wrap.innerHTML = sorted.map(([name,count])=> `
+        <div class="exercise-rank"><span>${escapeHtml(name)}</span><span class="faint">${count} sett</span></div>
+        <div class="xp-bar-track" style="height:6px; margin:-6px 0 10px;"><div class="xp-bar-fill" style="width:${Math.round(count/max*100)}%;"></div></div>
+      `).join('');
+  },
+  renderVolume(){
+    const completed = State.data.logs.filter(l=>l.completed);
+    const totalVol = Math.round(completed.reduce((s,l)=>s+sessionVolume(l),0));
+    const setsAll = completed.reduce((s,l)=>s+totalSets(l),0);
+    const repsAll = completed.reduce((s,l)=> s + l.exercises.reduce((s2,ex)=> s2 + ex.sets.reduce((s3,st)=> s3+(Number(st.reps)||0),0),0), 0);
+    el('stats-volume').innerHTML = `
+      <div class="row" style="padding:8px 0; border-bottom:1px solid var(--border);"><span class="muted">📦 Totalt volum</span><strong>${totalVol.toLocaleString('nb-NO')} kg</strong></div>
+      <div class="row" style="padding:8px 0; border-bottom:1px solid var(--border);"><span class="muted">🔢 Totalt sett</span><strong>${setsAll.toLocaleString('nb-NO')}</strong></div>
+      <div class="row" style="padding:8px 0;"><span class="muted">🔁 Totalt reps</span><strong>${repsAll.toLocaleString('nb-NO')}</strong></div>`;
+  },
+  renderAchievements(){
+    const unlocked = Gamification.unlockedIds();
+    el('stats-achievements').innerHTML = `<div class="grid-2">` + ACHIEVEMENTS_DEF.map(def=>{
+      const has = unlocked.has(def.id);
+      const rec = State.data.achievements.find(a=>a.id===def.id);
+      return `<div class="card hoverable" style="margin-bottom:0; padding:13px; ${has?'':'opacity:.4;'} display:flex; gap:10px; align-items:center;">
+          <div style="font-size:1.7rem;">${has?def.emoji:'🔒'}</div>
+          <div>
+            <div style="font-weight:800; font-size:.85rem;">${escapeHtml(def.name)}</div>
+            <div class="faint">${escapeHtml(def.desc)}</div>
+            ${has&&rec?`<div class="faint" style="margin-top:2px; color:var(--good);">✓ ${formatDateNice(rec.unlockedAt)}</div>`:''}
+          </div>
+        </div>`;
+    }).join('') + `</div>`;
+  },
+  renderLeaderboard(){
+    const top = State.data.logs.filter(l=>l.completed).slice().sort((a,b)=> (b.points||0)-(a.points||0)).slice(0,10);
+    const wrap = el('stats-leaderboard');
+    if(!top.length){ wrap.innerHTML = `<div class="empty-hint"><span class="ic">🏆</span>Ingen økter logga enno — fullfør di første for å kome på lista!</div>`; return; }
+    const medals = ['🥇','🥈','🥉'];
+    wrap.innerHTML = top.map((l,i)=>{
+      const day = SPLIT_DAYS[l.dayIndex];
+      return `<div class="row" style="padding:9px 0; border-bottom:1px solid var(--border);">
+          <span style="font-weight:800; min-width:28px;">${medals[i]||(i+1)+'.'}</span>
+          <span class="day-chip" style="background:${day.hex}; padding:4px 10px; font-size:.76rem; flex:1;">${day.emoji} ${escapeHtml(day.name)}</span>
+          <span class="faint">${formatDateNice(l.date)}</span>
+          <strong style="color:var(--accent); min-width:60px; text-align:right;">+${l.points} p</strong>
+        </div>`;
+    }).join('');
+  }
+};
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+const Settings = {
+  render(){
+    const d = State.data;
+    el('set-name').value = d.profile.name;
+    el('set-goal').value = d.profile.goal;
+    el('set-light-mode').checked = d.settings.theme === 'light';
+    el('set-apikey').value = d.settings.apiKey;
+    el('set-model').value = d.settings.model;
+  },
+  saveProfile(){
+    State.data.profile.name = el('set-name').value.trim() || 'Trenar';
+    State.data.profile.goal = el('set-goal').value;
+    State.save();
+    Dashboard.render();
+    Toast.success('💾 Profil lagra!');
+  },
+  toggleTheme(isLight){
+    State.data.settings.theme = isLight ? 'light' : 'dark';
+    document.body.classList.toggle('light', isLight);
+    State.save();
+    if(Router.current === 'stats') Stats.render();
+  },
+  saveApiKey(){
+    State.data.settings.apiKey = el('set-apikey').value.trim();
+    State.data.settings.model = el('set-model').value;
+    State.save();
+    Coach.render();
+    Toast.success(State.data.settings.apiKey ? '🔑 API-nøkkel lagra — coachen er no kopla til Anthropic!' : '💾 Innstillingar lagra');
+  },
+  confirmReset(){
+    Modal.open(`
+      <h3>⚠️ Nullstill all data?</h3>
+      <p class="muted">Dette slettar profil, treningslogg, poeng, prestasjonar og chat-historikk for godt. Kan ikkje angrast.</p>
+      <p class="muted" style="margin-top:8px;">💡 Tips: eksporter dataen din først om du vil ta vare på han!</p>
+      <div style="display:flex; gap:10px; margin-top:18px;">
+        <button class="btn btn-block" onclick="Modal.close()">Avbryt</button>
+        <button class="btn btn-danger btn-block" onclick="Settings.doReset()">Ja, slett alt</button>
+      </div>`);
+  },
+  doReset(){
+    try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+    Modal.close();
+    location.reload();
+  }
+};
+
+/* ============================================================
+   DATA IMPORT / EXPORT
+   ============================================================ */
+const DataIO = {
+  exportData(){
+    const blob = new Blob([JSON.stringify(State.data, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `fitforge-eksport-${todayStr()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    Toast.success('⬇️ Data eksportert som JSON-fil');
+  },
+  importData(file){
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      let incoming;
+      try{
+        incoming = JSON.parse(e.target.result);
+        if(!incoming || typeof incoming !== 'object' || !Array.isArray(incoming.logs)) throw new Error('format');
+      }catch(err){
+        Toast.show('⚠️ Klarte ikkje lese fila — er det ein gyldig FitForge-eksport (JSON)?');
+        return;
+      }
+      const pts = (incoming.gamification && incoming.gamification.totalPoints) || 0;
+      Modal.open(`
+        <h3>⬆️ Importer data?</h3>
+        <p class="muted">Fila inneheld <strong>${incoming.logs.length}</strong> treningsøkter og <strong>${pts}</strong> poeng.</p>
+        <p class="muted" style="margin-top:8px;"><strong>Dette erstattar all noverande data</strong> — eksporter det du har no først om du vil ta vare på det.</p>
+        <div style="display:flex; gap:10px; margin-top:18px;">
+          <button class="btn btn-block" onclick="Modal.close()">Avbryt</button>
+          <button class="btn btn-primary btn-block" id="confirm-import-btn">Importer</button>
+        </div>`);
+      el('confirm-import-btn').onclick = ()=>{
+        const fresh = State.fresh();
+        State.data = Object.assign(fresh, incoming, {onboarded:true});
+        State.data.profile = Object.assign({}, fresh.profile, incoming.profile);
+        State.data.settings = Object.assign({}, fresh.settings, incoming.settings);
+        State.data.gamification = Object.assign({}, fresh.gamification, incoming.gamification);
+        State.save();
+        Modal.close();
+        Toast.success('✅ Data importert!');
+        setTimeout(()=> location.reload(), 600);
+      };
+    };
+    reader.readAsText(file);
+    el('import-file').value = '';
+  }
+};
+
+
+
+
+
+
+
+</script>
+</body>
+</html>
